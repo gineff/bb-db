@@ -7,8 +7,6 @@
  * Created by Андрей on 24.02.2016.
  */
 
-var when = require('when');
-var _ = require('underscore');
 
 var Db = function(options) {
     this.mongoose = options.mongoose;
@@ -16,10 +14,7 @@ var Db = function(options) {
 
     if(toString.call(options.models) == "[object String]") {
         this.models = require('require-all')({
-            dirname: __dirname +'../'+ options.models,
-            resolve: function(model) {
-                return model.module;
-            }
+            dirname: __dirname +'../../../'+ options.models,
         });
     }else{
         var models = options.models
@@ -30,13 +25,13 @@ var Db = function(options) {
 
 
 
-Db.hasRights = function(req, doc) {
+hasRights = function hasRights(req, doc) {
     "use strict";
     return doc.userId!== req.user._id.toString()
 }
 
-Db.prototype.create = function(req, res, next){
-    var element = new this.collection(req.body);
+function create(req, res, next){
+    var element = new this(req.body);
     element.userId = req.user._id;
     element.save(function(err, el){
         if(err) next(err);
@@ -44,9 +39,9 @@ Db.prototype.create = function(req, res, next){
     })
 };
 
-Db.prototype.delete = function(req, res, next){
-    var col = this.collection;
-    this.collection.findById(req.params.id,function(err, doc){
+function remove(req, res, next){
+    var col = this;
+    this.findById(req.params.id,function(err, doc){
         if(err) next(err);
         else if(!doc){
             next(new Error("Документ не найден"))
@@ -68,7 +63,7 @@ Db.prototype.delete = function(req, res, next){
 
 };
 
-Db.prototype.patch = function(req, res, next) {
+function patch(req, res, next) {
     var data = req.body;
     var userId = req.user._id;
 
@@ -77,19 +72,24 @@ Db.prototype.patch = function(req, res, next) {
         return false;
     }
 
-    this.collection.findOne({_id: req.params.id}, function(err, doc) {
+    this.findOne({_id: req.params.id}, function(err, doc) {
 
         if(err) next(err);
         else if(!doc){
             next(new Error("Документ не найден"))
         }else if(Db.hasRights(req, doc)){
-            _.extend(doc, data);
+            Object.assign(doc, data);
             doc.save(function(err, doc){
                 if(err) {next(err); return false}
-                var json = doc.toObject({transform: true, virtuals: true, patch: true, isOwner: userId.equals(doc.userId)});
-                _.each(data, (val, key)=>{
+                var json = doc.toObject({transform: true, virtuals: true, patch: true, isOwner: userId && userId.equals(doc.userId)});
+                for(var key in data){
+                    if(data.hasOwnProperty(key)) {
+                        data[key] = json[key] || {};
+                    }
+                }
+               /* _.each(data, (val, key)=>{
                     data[key] = json[key] || {};
-                });
+                });*/
 
                 res.send(data)
             })
@@ -103,7 +103,7 @@ Db.prototype.patch = function(req, res, next) {
 
 };
 
-Db.prototype.update = function(req, res, next){
+function update(req, res, next){
 
     var el = req.body;
     delete el._id;
@@ -111,13 +111,12 @@ Db.prototype.update = function(req, res, next){
 
     if(!req.params.id) next(new Error('Common update module. Params does not have id'));
     else{
-        this.collection.findById(req.params.id, function(err, doc){
+        this.findById(req.params.id, function(err, doc){
             if(err) next(err);
             else if(!doc){
                 next(new Error("Документ не найден"))
             }else if(Db.hasRights(req, doc)){
-                _.extend(doc, el);
-                debugger;
+                Object.assign(doc, el);
                 doc.save(function(err, d) {
                     "use strict";
                     res.send(el)
@@ -134,7 +133,7 @@ Db.prototype.update = function(req, res, next){
 };
 
 
-Db.prototype.read = function(req, res, next){
+function read(req, res, next){
 
     var data = req.query;
     var userId = req.user && req.user._id;
@@ -142,7 +141,7 @@ Db.prototype.read = function(req, res, next){
     var refine = data.options && data.options.refine;
 
     if(req.params.id){
-        this.collection.findById(req.params.id, null, data.options).exec(function (err, doc) {
+        this.findById(req.params.id, null, data.options).exec(function (err, doc) {
             "use strict";
             if(err) next(err);
             else if(!doc) {
@@ -150,91 +149,70 @@ Db.prototype.read = function(req, res, next){
             }else if(doc.state && doc.state == 'deleted') {
                 next(new Error('Документ не найден'))
             }else{
-                res.send(doc.toObject({transform: true, virtuals: true, isOwner: userId.equals(doc.userId), refine: refine}))
+                res.send(doc.toObject({transform: true, virtuals: true, isOwner: userId && userId.equals(doc.userId), refine: refine}))
             }
         })
     }else{
 
         if(data.query){
-            this.collection.find(data.query, null, data.options).exec(function (err, docs) {
+            this.find(data.query, null, data.options).exec(function (err, docs) {
                 if(err) next(err);
                 else{
-                    res.send(_.map(docs, (doc)=> doc.toObject({
+                    res.send(
+                        docs.map(doc => doc.toObject({
+                             transform: true,
+                             virtuals: true,
+                             isOwner: userId && userId.equals(doc.userId),
+                             refine: refine
+                        }))
+                    )
+                    /*res.send(_.map(docs, (doc)=> doc.toObject({
                         transform: true,
                         virtuals: true,
                         isOwner: userId.equals(doc.userId),
                         refine: refine
-                    })))
+                    })))*/
                 }
             })
         }else{
-            data.aggregate = data.aggregate || [];
-
-            if( Object.prototype.toString.call( data.aggregate ) !== '[object Array]' ) {
-                data.aggregate = [data.aggregate];
-            }
-
-            //     data.aggregate.unshift({$match:{userId:userId.toHexString()}});
-
-            console.log(data.aggregate)
-            this.collection.aggregate(data.aggregate).exec(function (err, docs) {
-                if(err) next(err);
-                else res.send(docs)
-            })
-
+            next(new Error('wrong query'))
         }
 
     }
 
-
-
-
-
 };
 
+function rout(req, res, next){
 
-Db.prototype.parse = function(obj){
 
-    function getNode(el){
-        for(var key in el){
-            if ( !el.hasOwnProperty(key) ) continue;
-
-            if(el[key].$date){ el.key = new Date(el[key].$date)}
-            else if(el[key].$objectId){ el[key] =  Db.prototype.newId(el[key].$objectId);}
-            else if(typeof el[key] == 'object'){
-                getNode(el[key]);
-            }else{
-                if(el[key] == +el[key]) el[key] = +el[key];
-            }
-        }
-        return el;
-    }
-
-    getNode(obj);
-    return obj;
-
-};
-
-Db.prototype.rout = function(req, res, next){
     switch (req.method){
         case 'GET':
-            this.read.apply(this, arguments);
+            console.log(1)
+            read.apply(this, arguments);
             break;
         case 'DELETE':
-            this.delete.apply(this, arguments);
+            remove.apply(this, arguments);
             break;
         case 'POST':
-            this.create.apply(this, arguments);
+            create.apply(this, arguments);
             break;
         case 'PUT':
-            this.update.apply(this, arguments);
+            update.apply(this, arguments);
             break;
         case 'PATCH':
-            this.patch.apply(this, arguments);
+            patch.apply(this, arguments);
     }
 }
 
+Db.prototype.middleware = function() {
+    var self = this;
+    var models = this.models
 
+    return function(req, res, next) {
+        var model = models[req.params.model];
+        rout.apply(model, arguments);
+    }
+}
 
 module.exports  = Db;
 
