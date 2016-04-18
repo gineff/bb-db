@@ -2,8 +2,7 @@
   "name": "bb-db",
   "description": "backbone CRUD database for express",
   "version": "0.0.1",
-  "devDependencies": {
-    "mongoose" : "4.4.8",
-    "express" : "4.13.4"
+  "dependencies" : {
+    "require-all" : "2.0.0"
   }
 }
