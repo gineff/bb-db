@@ -6,7 +6,7 @@
 /**
  * Created by Андрей on 24.02.2016.
  */
-
+var path = require('path');
 
 var Db = function(options) {
     this.mongoose = options.mongoose;
@@ -14,7 +14,7 @@ var Db = function(options) {
 
     if(toString.call(options.models) == "[object String]") {
         this.models = require('require-all')({
-            dirname: __dirname +'../../../'+ options.models,
+            dirname: options.models
         });
     }else{
         var models = options.models
@@ -45,7 +45,7 @@ function remove(req, res, next){
         if(err) next(err);
         else if(!doc){
             next(new Error("Документ не найден"))
-        }else if(Db.hasRights(req, doc)){
+        }else if(hasRights(req, doc)){
             if(col.schema.tree.state){
                 doc.state = 'deleted';
                 doc.save();
@@ -77,7 +77,7 @@ function patch(req, res, next) {
         if(err) next(err);
         else if(!doc){
             next(new Error("Документ не найден"))
-        }else if(Db.hasRights(req, doc)){
+        }else if(hasRights(req, doc)){
             Object.assign(doc, data);
             doc.save(function(err, doc){
                 if(err) {next(err); return false}
@@ -115,7 +115,7 @@ function update(req, res, next){
             if(err) next(err);
             else if(!doc){
                 next(new Error("Документ не найден"))
-            }else if(Db.hasRights(req, doc)){
+            }else if(hasRights(req, doc)){
                 Object.assign(doc, el);
                 doc.save(function(err, d) {
                     "use strict";
