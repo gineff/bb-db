@@ -155,6 +155,7 @@ function read(req, res, next){
     }else{
 
         if(data.query){
+            data.query.state = data.query.state || {$ne: 'deleted'};
             this.find(data.query, null, data.options).exec(function (err, docs) {
                 if(err) next(err);
                 else{
