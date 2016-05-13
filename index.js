@@ -1,11 +1,3 @@
-/**
- * Created by Андрей on 18.04.2016.
- */
-
-
-/**
- * Created by Андрей on 24.02.2016.
- */
 var path = require('path');
 
 var Db = function(options) {
@@ -20,9 +12,6 @@ var Db = function(options) {
         var models = options.models
     }
 };
-
-
-
 
 
 hasRights = function hasRights(req, doc) {
@@ -87,9 +76,6 @@ function patch(req, res, next) {
                         data[key] = json[key] || {};
                     }
                 }
-               /* _.each(data, (val, key)=>{
-                    data[key] = json[key] || {};
-                });*/
 
                 res.send(data)
             })
@@ -107,7 +93,6 @@ function update(req, res, next){
 
     var el = req.body;
     delete el._id;
-
 
     if(!req.params.id) next(new Error('Common update module. Params does not have id'));
     else{
@@ -128,8 +113,6 @@ function update(req, res, next){
             }
         })
     }
-
-
 };
 
 
@@ -154,41 +137,30 @@ function read(req, res, next){
         })
     }else{
 
-        if(data.query){
-            data.query.state = data.query.state || {$ne: 'deleted'};
-            this.find(data.query, null, data.options).exec(function (err, docs) {
-                if(err) next(err);
-                else{
-                    res.send(
-                        docs.map(doc => doc.toObject({
-                             transform: true,
-                             virtuals: true,
-                             isOwner: userId && userId.equals(doc.userId),
-                             refine: refine
-                        }))
-                    )
-                    /*res.send(_.map(docs, (doc)=> doc.toObject({
-                        transform: true,
-                        virtuals: true,
-                        isOwner: userId.equals(doc.userId),
-                        refine: refine
-                    })))*/
-                }
-            })
-        }else{
-            next(new Error('wrong query'))
-        }
+    data.query = data.query || {};
 
+        data.query.state = data.query.state || {$ne: 'deleted'};
+        this.find(data.query, null, data.options).exec(function (err, docs) {
+            if(err) next(err);
+            else{
+                res.send(
+                    docs.map(doc => doc.toObject({
+                         transform: true,
+                         virtuals: true,
+                         isOwner: userId && userId.equals(doc.userId),
+                         refine: refine
+                    }))
+                )
+            }
+        })
     }
 
 };
 
 function rout(req, res, next){
 
-
     switch (req.method){
         case 'GET':
-            console.log(1)
             read.apply(this, arguments);
             break;
         case 'DELETE':
