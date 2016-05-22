@@ -2,22 +2,21 @@ var path = require('path');
 
 var Db = function(options) {
     this.mongoose = options.mongoose;
-    this.newId = id => new this.mongoose.Types.ObjectId(id || void(0))
 
     if(toString.call(options.models) == "[object String]") {
         this.models = require('require-all')({
             dirname: options.models
         });
     }else{
-        var models = options.models
+        this.models = options.models
     }
 };
 
 
-hasRights = function hasRights(req, doc) {
+function hasRights(req, doc) {
     "use strict";
     return doc.userId!== req.user._id.toString()
-}
+};
 
 function create(req, res, next){
     var element = new this(req.body);
@@ -26,7 +25,7 @@ function create(req, res, next){
         if(err) next(err);
         res.send(el);
     })
-};
+}
 
 function remove(req, res, next){
     var col = this;
@@ -50,14 +49,14 @@ function remove(req, res, next){
     });
 
 
-};
+}
 
 function patch(req, res, next) {
     var data = req.body;
     var userId = req.user._id;
 
     if(Object.keys(data).length > 1) {
-        next(new Error("Методом PATCH можно передать только одну пару знанчений"))
+        next(new Error("Методом PATCH можно передать только одну пару знанчений"));
         return false;
     }
 
@@ -87,7 +86,7 @@ function patch(req, res, next) {
     });
 
 
-};
+}
 
 function update(req, res, next){
 
@@ -113,7 +112,7 @@ function update(req, res, next){
             }
         })
     }
-};
+}
 
 
 function read(req, res, next){
@@ -155,7 +154,7 @@ function read(req, res, next){
         })
     }
 
-};
+}
 
 function rout(req, res, next){
 
@@ -178,14 +177,14 @@ function rout(req, res, next){
 }
 
 Db.prototype.middleware = function() {
-    var self = this;
-    var models = this.models
+    var models = this.models;
 
     return function(req, res, next) {
         var model = models[req.params.model];
+        if(!model) next(new Error(`Model ${req.params.model} not found`));
         rout.apply(model, arguments);
     }
-}
+};
 
 module.exports  = Db;
 
