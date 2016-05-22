@@ -181,7 +181,7 @@ Db.prototype.middleware = function() {
 
     return function(req, res, next) {
         var model = models[req.params.model];
-        if(!model) next(new Error(`Model ${req.params.model} not found`));
+        if(!model) next(new Error(`Model '${req.params.model}' not found`));
         rout.apply(model, arguments);
     }
 };
