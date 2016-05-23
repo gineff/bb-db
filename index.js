@@ -29,13 +29,16 @@ var Db = function(options) {
 
 
 function hasRights(req, doc) {
-    "use strict";
-    return doc.userId!== req.user._id.toString()
+    return !col.schema.tree.userId || doc.userId!== req.user._id.toString()
 }
 
 function create(req, res, next){
     var element = new this(req.body);
-    element.userId = req.user._id;
+    if(col.schema.tree.userId){
+        element.userId = req.user._id;
+        if(!this.hasRights()) return next(new Error('Требуется авторизация'));
+    }
+
     element.save(function(err, el){
         if(err) next(err);
         res.send(el);
