@@ -1,7 +1,7 @@
 {
   "name": "bb-db",
   "description": "backbone CRUD database for express",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "homepage": "https://github.com/gineff/bb-db/",
   "repository": {
     "type": "git",
