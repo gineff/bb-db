@@ -34,7 +34,7 @@ function hasRights(req, doc) {
 
 function create(req, res, next){
     var element = new this(req.body);
-    if(col.schema.tree.userId){
+    if(this.schema.tree.userId){
         element.userId = req.user._id;
         if(!this.hasRights()) return next(new Error('Требуется авторизация'));
     }
