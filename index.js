@@ -51,7 +51,7 @@ function remove(req, res, next){
         if(err) next(err);
         else if(!doc){
             next(new Error("Документ не найден"))
-        }else if(this.hasRights(req, doc)){
+        }else if(col.hasRights(req, doc)){
             if(col.schema.tree.state){
                 doc.state = 'deleted';
                 doc.save();
@@ -70,7 +70,7 @@ function remove(req, res, next){
 function patch(req, res, next) {
     var data = req.body;
     var userId = req.user._id;
-
+    var col = this;
     if(Object.keys(data).length > 1) {
         next(new Error("Методом PATCH можно передать только одну пару знанчений"));
         return false;
@@ -81,7 +81,7 @@ function patch(req, res, next) {
         if(err) next(err);
         else if(!doc){
             next(new Error("Документ не найден"))
-        }else if(this.hasRights(req, doc)){
+        }else if(col.hasRights(req, doc)){
             Object.assign(doc, data);
             doc.save(function(err, doc){
                 if(err) {next(err); return false}
@@ -106,14 +106,14 @@ function update(req, res, next){
 
     var el = req.body;
     delete el._id;
-
+    var col = this;
     if(!req.params.id) next(new Error('Common update module. Params does not have id'));
     else{
         this.findById(req.params.id, function(err, doc){
             if(err) next(err);
             else if(!doc){
                 next(new Error("Документ не найден"))
-            }else if(this.hasRights(req, doc)){
+            }else if(col.hasRights(req, doc)){
                 Object.assign(doc, el);
                 doc.save(function(err, d) {
                     "use strict";
