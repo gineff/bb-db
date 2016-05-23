@@ -1,22 +1,37 @@
-var path = require('path');
+var express = require('express');
+var router = express.Router();
+
+var methods = {GET: 'read', POST: 'create', PUT: 'update', DELETE: 'remove', PATCH: 'patch'};
 
 var Db = function(options) {
-    this.mongoose = options.mongoose;
+    var models;
 
     if(toString.call(options.models) == "[object String]") {
-        this.models = require('require-all')({
+        models = require('require-all')({
             dirname: options.models
         });
     }else{
-        this.models = options.models
+        models = options.models
     }
+
+    for(var key in models) {
+        if(models.hasOwnProperty(key)) {
+            Object.assign(models[key], {read, remove, create, update, patch, hasRights});
+        }
+    }
+
+    return router.all('/:model/:id?', function (req, res, next) {
+        var model = models[req.params.model];
+        if(!model) next(new Error(`Model '${req.params.model}' not found`));
+        model[methods[req.method]](req, res, next)
+    });
 };
 
 
 function hasRights(req, doc) {
     "use strict";
     return doc.userId!== req.user._id.toString()
-};
+}
 
 function create(req, res, next){
     var element = new this(req.body);
@@ -33,7 +48,7 @@ function remove(req, res, next){
         if(err) next(err);
         else if(!doc){
             next(new Error("Документ не найден"))
-        }else if(hasRights(req, doc)){
+        }else if(this.hasRights(req, doc)){
             if(col.schema.tree.state){
                 doc.state = 'deleted';
                 doc.save();
@@ -47,8 +62,6 @@ function remove(req, res, next){
             next(error);
         }
     });
-
-
 }
 
 function patch(req, res, next) {
@@ -65,7 +78,7 @@ function patch(req, res, next) {
         if(err) next(err);
         else if(!doc){
             next(new Error("Документ не найден"))
-        }else if(hasRights(req, doc)){
+        }else if(this.hasRights(req, doc)){
             Object.assign(doc, data);
             doc.save(function(err, doc){
                 if(err) {next(err); return false}
@@ -84,8 +97,6 @@ function patch(req, res, next) {
             next(error);
         }
     });
-
-
 }
 
 function update(req, res, next){
@@ -99,7 +110,7 @@ function update(req, res, next){
             if(err) next(err);
             else if(!doc){
                 next(new Error("Документ не найден"))
-            }else if(hasRights(req, doc)){
+            }else if(this.hasRights(req, doc)){
                 Object.assign(doc, el);
                 doc.save(function(err, d) {
                     "use strict";
@@ -156,35 +167,4 @@ function read(req, res, next){
 
 }
 
-function rout(req, res, next){
-
-    switch (req.method){
-        case 'GET':
-            read.apply(this, arguments);
-            break;
-        case 'DELETE':
-            remove.apply(this, arguments);
-            break;
-        case 'POST':
-            create.apply(this, arguments);
-            break;
-        case 'PUT':
-            update.apply(this, arguments);
-            break;
-        case 'PATCH':
-            patch.apply(this, arguments);
-    }
-}
-
-Db.prototype.middleware = function() {
-    var models = this.models;
-
-    return function(req, res, next) {
-        var model = models[req.params.model];
-        if(!model) next(new Error(`Model '${req.params.model}' not found`));
-        rout.apply(model, arguments);
-    }
-};
-
 module.exports  = Db;
-
