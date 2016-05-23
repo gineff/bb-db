@@ -29,7 +29,7 @@ var Db = function(options) {
 
 
 function hasRights(req, doc) {
-    return !col.schema.tree.userId || doc.userId!== req.user._id.toString()
+    return !this.schema.tree.userId || doc.userId!== req.user._id.toString()
 }
 
 function create(req, res, next){
