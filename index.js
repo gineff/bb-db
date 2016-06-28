@@ -1,5 +1,7 @@
 var express = require('express');
 var router = express.Router();
+var EventEmitter = require('events');
+
 
 var methods = {GET: 'read', POST: 'create', PUT: 'update', DELETE: 'remove', PATCH: 'patch'};
 
@@ -13,10 +15,11 @@ var Db = function(options) {
     }else{
         models = options.models
     }
-
+    var emitter = options.emitter || new EventEmitter();
+        
     for(var key in models) {
         if(models.hasOwnProperty(key)) {
-            Object.assign(models[key], {read, remove, create, update, patch, hasRights});
+            Object.assign(models[key], {read, remove, create, update, patch, hasRights, emitter});
         }
     }
 
@@ -29,25 +32,26 @@ var Db = function(options) {
 
 
 function hasRights(req, doc) {
-    return !this.schema.tree.userId || doc.userId!== req.user._id.toString()
+    return !this.schema.tree.userId || doc.userId && doc.userId!== req.user._id.toString()
 }
 
 function create(req, res, next){
     var element = new this(req.body);
     if(this.schema.tree.userId){
         element.userId = req.user._id;
-        if(!this.hasRights()) return next(new Error('Требуется авторизация'));
+        //if(!this.hasRights()) return next(new Error('Требуется авторизация'));
     }
 
     element.save(function(err, el){
         if(err) next(err);
+        this.emitter.emit('bb-db:created', this.collection.NativeCollection.name, el)
         res.send(el);
     })
 }
 
 function remove(req, res, next){
     var col = this;
-    this.findById(req.params.id,function(err, doc){
+    this.findById(req.params.id, function(err, doc){
         if(err) next(err);
         else if(!doc){
             next(new Error("Документ не найден"))
@@ -56,6 +60,7 @@ function remove(req, res, next){
                 doc.state = 'deleted';
                 doc.save();
             }else{
+                this.emitter.emit('bb-db:removed', this.collection.NativeCollection.name, req.params.id);
                 doc.remove()
             }
             res.send('ok');
@@ -91,7 +96,7 @@ function patch(req, res, next) {
                         data[key] = json[key] || {};
                     }
                 }
-
+                this.emitter.emit('bb-db:patched', this.collection.NativeCollection.name, req.params.id);
                 res.send(data)
             })
         }else{
@@ -117,6 +122,7 @@ function update(req, res, next){
                 Object.assign(doc, el);
                 doc.save(function(err, d) {
                     "use strict";
+                    this.emitter.emit('bb-db:updated', this.collection.NativeCollection.name, req.params.id);
                     res.send(el)
                 })
             }else{
