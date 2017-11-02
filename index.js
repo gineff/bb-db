@@ -137,8 +137,8 @@ function update(req, res, next){
 
 function read(req, res, next){
 
-    var data = req.query;
-    data = (typeof data === 'string')? JSON.parse(data) : data;
+    var query = req.query;
+    var data = (typeof query.data === 'string')? JSON.parse(query.data) : query.data;
     var userId = req.user && req.user._id;
 
     var refine = data.options && data.options.refine;
