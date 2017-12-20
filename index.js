@@ -4,10 +4,11 @@ var EventEmitter = require('events');
 
 
 var methods = {GET: 'read', POST: 'create', PUT: 'update', DELETE: 'remove', PATCH: 'patch'};
+var extention = {read, remove, create, update, patch};
 
 var Db = function(options) {
     var models;
-    var cloneModels = {};
+
     if(toString.call(options.models) == "[object String]") {
         models = require('require-all')({
             dirname: options.models
@@ -19,15 +20,14 @@ var Db = function(options) {
         
     for(var key in models) {
         if(models.hasOwnProperty(key)) {
-            var cloneModel = Object.assign({}, models[key], {read, remove, create, update, patch, hasRights, emitter});
-            cloneModels[key]=cloneModel;
+            Object.assign(models[key], {hasRights, emitter});
         }
     }
-
+    
     return router.all('/:model/:id?', function (req, res, next) {
-        var model = cloneModels[req.params.model];
+        var model = models[req.params.model];
         if(!model) next(new Error(`Model '${req.params.model}' not found`));
-        model[methods[req.method]](req, res, next)
+			extention[methods[req.method]].call(model, req, res, next);
     });
 };
 
@@ -61,7 +61,7 @@ function remove(req, res, next){
                 doc.state = 'deleted';
                 doc.save();
             }else{
-                //this.emitter.emit('bb-db:removed', this.collection.NativeCollection.name, req.params.id);
+                col.emitter.emit('bb-db:removed', this.collection.NativeCollection.name, req.params.id);
                 doc.remove()
             }
             res.send('ok');
@@ -97,7 +97,7 @@ function patch(req, res, next) {
                         data[key] = json[key] || {};
                     }
                 }
-                //this.emitter.emit('bb-db:patched', this.collection.NativeCollection.name, req.params.id);
+                col.emitter.emit('bb-db:patched', this.collection.NativeCollection.name, req.params.id);
                 res.send(data)
             })
         }else{
@@ -123,7 +123,7 @@ function update(req, res, next){
                 Object.assign(doc, el);
                 doc.save(function(err, d) {
                     "use strict";
-                    //this.emitter.emit('bb-db:updated', this.collection.NativeCollection.name, req.params.id);
+                    col.emitter.emit('bb-db:updated', this.collection.NativeCollection.name, req.params.id);
                     res.send(el)
                 })
             }else{
