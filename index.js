@@ -61,7 +61,7 @@ function remove(req, res, next){
                 doc.state = 'deleted';
                 doc.save();
             }else{
-                col.emitter.emit('bb-db:removed', this.collection.NativeCollection.name, req.params.id);
+                col.emitter.emit('bb-db:removed', col.collection.NativeCollection.name, req.params.id);
                 doc.remove()
             }
             res.send('ok');
@@ -97,7 +97,7 @@ function patch(req, res, next) {
                         data[key] = json[key] || {};
                     }
                 }
-                col.emitter.emit('bb-db:patched', this.collection.NativeCollection.name, req.params.id);
+                col.emitter.emit('bb-db:patched', col.collection.NativeCollection.name, req.params.id);
                 res.send(data)
             })
         }else{
@@ -123,7 +123,7 @@ function update(req, res, next){
                 Object.assign(doc, el);
                 doc.save(function(err, d) {
                     "use strict";
-                    col.emitter.emit('bb-db:updated', this.collection.NativeCollection.name, req.params.id);
+                    col.emitter.emit('bb-db:updated', col.collection.NativeCollection.name, req.params.id);
                     res.send(el)
                 })
             }else{
