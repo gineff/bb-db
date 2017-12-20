@@ -7,7 +7,7 @@ var methods = {GET: 'read', POST: 'create', PUT: 'update', DELETE: 'remove', PAT
 
 var Db = function(options) {
     var models;
-    var cloneModels = [];
+    var cloneModels = {};
     if(toString.call(options.models) == "[object String]") {
         models = require('require-all')({
             dirname: options.models
@@ -20,7 +20,7 @@ var Db = function(options) {
     for(var key in models) {
         if(models.hasOwnProperty(key)) {
             var cloneModel = Object.assign({}, models[key], {read, remove, create, update, patch, hasRights, emitter});
-            cloneModels.push(cloneModel);
+            cloneModels[key]=cloneModel;
         }
     }
 
