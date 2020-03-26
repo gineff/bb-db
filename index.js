@@ -6,6 +6,7 @@ var EventEmitter = require('events');
 var methods = {GET: 'read', POST: 'create', PUT: 'update', DELETE: 'remove', PATCH: 'patch'};
 var extention = {read, remove, create, update, patch};
 
+// options {model: mongoose.model('User', UserSchema)}
 var Db = function(options) {
     var models;
 
